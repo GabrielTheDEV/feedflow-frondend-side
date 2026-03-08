@@ -25,7 +25,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com",
               "img-src 'self' data: https: blob:",
               "font-src 'self' data: https://fonts.gstatic.com",
-              "connect-src 'self' http://localhost:8000/static/widget.js https://*.supabase.co https://accounts.google.com https://*.google.com wss://*.supabase.co",
+              "connect-src 'self' http://localhost:8000 http://localhost:8000/static/widget.js https://*.supabase.co https://accounts.google.com https://*.google.com wss://*.supabase.co",
               "frame-src 'self' https://accounts.google.com",
               "frame-ancestors 'self'",
               "form-action 'self' https://accounts.google.com",

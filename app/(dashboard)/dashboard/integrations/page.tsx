@@ -54,6 +54,52 @@ export default function IntegrationsPage() {
             Connect GitHub
           </button>
         </div>
+
+        {/* Jira Integration */}
+        <div className="bg-white rounded-xl border border-border p-6">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-foreground">Jira</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Turn incoming feedback into Jira issues automatically
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-secondary text-secondary-foreground flex items-center justify-center">
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M11.537 11.176h-.006c-1.196 0-2.168.972-2.168 2.168v7.292a1.902 1.902 0 0 0 3.249 1.345 1.889 1.889 0 0 0 .55-1.345v-7.292c0-1.196-.972-2.168-2.168-2.168Zm0-9.812c-1.196 0-2.168.972-2.168 2.168v7.292c0 1.196.972 2.168 2.168 2.168h.006a2.168 2.168 0 0 0 2.168-2.168V3.532c0-1.196-.972-2.168-2.168-2.168h-.006Zm7.29 7.999h-7.293c-1.196 0-2.168.972-2.168 2.168v.006c0 1.196.972 2.168 2.168 2.168h7.293a1.902 1.902 0 0 0 1.345-3.249 1.889 1.889 0 0 0-1.345-.55Zm-9.818 0H1.716a1.902 1.902 0 1 0 0 3.804h7.293a2.168 2.168 0 0 0 2.168-2.168v-.006a2.168 2.168 0 0 0-2.168-2.168Z" />
+              </svg>
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Status: <span className="text-yellow-600 font-medium">Not Connected</span>
+          </p>
+          <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
+            Connect Jira
+          </button>
+        </div>
+
+        {/* Trello Integration */}
+        <div className="bg-white rounded-xl border border-border p-6">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-foreground">Trello</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Send user reports to Trello boards and lists
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-secondary text-secondary-foreground flex items-center justify-center">
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M2.5 4.75A2.25 2.25 0 0 1 4.75 2.5h14.5a2.25 2.25 0 0 1 2.25 2.25v14.5a2.25 2.25 0 0 1-2.25 2.25H4.75A2.25 2.25 0 0 1 2.5 19.25V4.75Zm4.25 1.5a.75.75 0 0 0-.75.75v5.5c0 .414.336.75.75.75h3.5a.75.75 0 0 0 .75-.75v-5.5a.75.75 0 0 0-.75-.75h-3.5Zm0 8a.75.75 0 0 0-.75.75v2c0 .414.336.75.75.75h3.5a.75.75 0 0 0 .75-.75v-2a.75.75 0 0 0-.75-.75h-3.5Zm7-8a.75.75 0 0 0-.75.75v10c0 .414.336.75.75.75h3.5a.75.75 0 0 0 .75-.75V7a.75.75 0 0 0-.75-.75h-3.5Z" />
+              </svg>
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Status: <span className="text-yellow-600 font-medium">Not Connected</span>
+          </p>
+          <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
+            Connect Trello
+          </button>
+        </div>
       </div>
     </div>
   )

@@ -38,7 +38,10 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const { data: { user } = { user: undefined } } = await supabase.auth.getUser()
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+  const user = session?.user
 
   // Protege dashboard
   if (pathname.startsWith("/dashboard") && !user) {

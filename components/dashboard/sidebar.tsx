@@ -1,13 +1,14 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { LogOut, BarChart3, Zap, Settings, FileText, Menu, X } from "lucide-react"
-import { useState } from "react"
+import { usePathname, useRouter } from "next/navigation"
+import { LogOut, BarChart3, Zap, Settings, FileText, Menu, X, Folders, BookOpenText, Contact } from "lucide-react"
+import { useEffect, useState } from "react"
 import { Logo } from "@/components/brand/logo"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Dialog, DialogTrigger, DialogContent, DialogClose } from "@/components/ui/dialog"
+import { supabase } from "@/lib/supabase/client"
 
 interface DashboardSidebarProps {
   user?: {
@@ -20,12 +21,17 @@ interface DashboardSidebarProps {
 
 const navItems = [
   {
+    label: "Collections",
+    href: "/dashboard/collections",
+    icon: Folders,
+  },
+  {
     label: "Feedbacks",
     href: "/dashboard",
     icon: BarChart3,
   },
   {
-    label: "Widget",
+    label: "Custom Widget",
     href: "/dashboard/widget",
     icon: Zap,
   },
@@ -41,9 +47,41 @@ const navItems = [
   },
 ]
 
+const othersItems = [
+  {
+    label: "Documentation",
+    href: "/dashboard/documentation",
+    icon: BookOpenText,
+  },
+  {
+    label: "Contact",
+    href: "/dashboard/contact",
+    icon: Contact,
+  },
+  
+]
+
 export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  const handleLogout = async () => {
+    if (onLogout) {
+      onLogout()
+      return
+    }
+
+    await supabase.auth.signOut()
+    router.push("/")
+    router.refresh()
+  }
+
+  useEffect(() => {
+    navItems.forEach((item) => {
+      router.prefetch(item.href)
+    })
+  }, [router])
 
   const sidebarContent = (
     <>
@@ -53,24 +91,57 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
       </div>
 
       {/* Workspace Selector */}
-      <div className="px-6 py-4 border-b border-border">
+      {/* <div className="px-6 py-4 border-b border-border">
         <div className="text-xs text-muted-foreground mb-2">WORKSPACE</div>
         <button className="w-full px-3 py-2 rounded-lg bg-secondary text-sm font-medium text-foreground hover:bg-secondary/80 transition-colors text-left">
-          FeedFlow Workspace
+          Developer mode
         </button>
-      </div>
+      </div> */}
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-6">
         <div className="space-y-2">
           {navItems.map((item) => {
             const Icon = item.icon
-            const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
+            const isDashboardRoot = item.href === "/dashboard"
+            const isActive = isDashboardRoot
+              ? pathname === "/dashboard"
+              : pathname === item.href || pathname.startsWith(item.href + "/")
 
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                }`}
+                onClick={() => setMobileOpen(false)}
+              >
+                <Icon className="h-4 w-4" />
+                <span>{item.label}</span>
+              </Link>
+            )
+          })}
+        </div>
+        <div className="px-6 py-4 border-t border-border">
+          <div className="text-xs text-muted-foreground mb-2">OTHER</div>
+        </div>
+        <div className="space-y-2">
+          {othersItems.map((item) => {
+            const Icon = item.icon
+            const isDashboardRoot = item.href === "/dashboard"
+            const isActive = isDashboardRoot
+              ? pathname === "/dashboard"
+              : pathname === item.href || pathname.startsWith(item.href + "/")
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                prefetch
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                   isActive
                     ? "bg-primary text-primary-foreground"
@@ -163,7 +234,7 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
                       </select>
                     </div>
                     <DialogClose asChild>
-                      <Button variant="primary" className="w-full mt-4">Save</Button>
+                      <Button variant="default" className="w-full mt-4">Save</Button>
                     </DialogClose>
                   </form>
                 </DialogContent>
@@ -173,7 +244,7 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
                 variant="ghost"
                 size="sm"
                 className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
-                onClick={onLogout}
+                onClick={handleLogout}
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout
