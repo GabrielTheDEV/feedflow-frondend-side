@@ -15,15 +15,7 @@ export function HeroSection() {
       </div>
 
       <div className="relative mx-auto max-w-4xl text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-sm text-muted-foreground shadow-sm"
-        >
-          <Sparkles className="h-4 w-4 text-[#8B5CF6]" />
-          <span>AI-Powered Bug Analysis</span>
-        </motion.div>
+       
 
         <motion.h1
           initial={{ opacity: 0, y: 20 }}

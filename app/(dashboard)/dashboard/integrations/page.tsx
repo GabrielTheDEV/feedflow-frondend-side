@@ -1,105 +1,313 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { Trash2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { supabase } from "@/lib/supabase/client"
+
+
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL
+const apiProdBaseUrl = process.env.NEXT_PUBLIC_API_URL_PROD
+
+// Utilitário para decidir qual base usar para endpoints específicos
+function getApiUrl(endpoint: string) {
+  // Endpoints que devem ir para produção
+  if (
+    apiProdBaseUrl &&
+    (
+      endpoint.startsWith("/integrations/") &&
+      (
+        /\/oauth\/.+\/authorize/.test(endpoint) || // authorize
+        /^\/integrations\/[^/]+$/.test(endpoint)   // context (list)
+      )
+    )
+  ) {
+    return apiProdBaseUrl + endpoint
+  }
+  return apiBaseUrl + endpoint
+}
+
+interface ApiCollection {
+  id: string
+  name?: string | null
+}
+
+interface ApiIntegration {
+  id: string
+  service: string
+  collection_id?: string
+}
+
+type Provider = "slack" | "jira" | "trello"
+
+interface IntegrationDef {
+  provider: Provider
+  label: string
+  description: string
+  iconBg: string
+  icon: React.ReactNode
+}
+
+const INTEGRATIONS: IntegrationDef[] = [
+  {
+    provider: "slack",
+    label: "Slack",
+    description: "Get instant notifications when users report bugs.",
+    iconBg: "bg-[#4A154B]",
+    icon: (
+      <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 122.8 122.8">
+        <path d="M25.8 77.6c0 7.1-5.8 12.9-12.9 12.9S0 84.7 0 77.6s5.8-12.9 12.9-12.9h12.9v12.9zm6.5 0c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9v32.3c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V77.6z" fill="#E01E5A"/>
+        <path d="M45.2 25.8c-7.1 0-12.9-5.8-12.9-12.9S38.1 0 45.2 0s12.9 5.8 12.9 12.9v12.9H45.2zm0 6.5c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H12.9C5.8 58.1 0 52.3 0 45.2s5.8-12.9 12.9-12.9h32.3z" fill="#36C5F0"/>
+        <path d="M97 45.2c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9-5.8 12.9-12.9 12.9H97V45.2zm-6.5 0c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V12.9C64.7 5.8 70.5 0 77.6 0s12.9 5.8 12.9 12.9v32.3z" fill="#2EB67D"/>
+        <path d="M77.6 97c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9-12.9-5.8-12.9-12.9V97h12.9zm0-6.5c-7.1 0-12.9-5.8-12.9-12.9s5.8-12.9 12.9-12.9h32.3c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H77.6z" fill="#ECB22E"/>
+      </svg>
+    ),
+  },
+  {
+    provider: "jira",
+    label: "Jira",
+    description: "Turn incoming feedback into Jira issues automatically.",
+    iconBg: "bg-[#0052CC]",
+    icon: (
+      <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M11.537 11.176h-.006c-1.196 0-2.168.972-2.168 2.168v7.292a1.902 1.902 0 0 0 3.249 1.345 1.889 1.889 0 0 0 .55-1.345v-7.292c0-1.196-.972-2.168-2.168-2.168Zm0-9.812c-1.196 0-2.168.972-2.168 2.168v7.292c0 1.196.972 2.168 2.168 2.168h.006a2.168 2.168 0 0 0 2.168-2.168V3.532c0-1.196-.972-2.168-2.168-2.168h-.006Zm7.29 7.999h-7.293c-1.196 0-2.168.972-2.168 2.168v.006c0 1.196.972 2.168 2.168 2.168h7.293a1.902 1.902 0 0 0 1.345-3.249 1.889 1.889 0 0 0-1.345-.55Zm-9.818 0H1.716a1.902 1.902 0 1 0 0 3.804h7.293a2.168 2.168 0 0 0 2.168-2.168v-.006a2.168 2.168 0 0 0-2.168-2.168Z" />
+      </svg>
+    ),
+  },
+  {
+    provider: "trello",
+    label: "Trello",
+    description: "Send user reports to Trello boards and lists.",
+    iconBg: "bg-[#0052CC]",
+    icon: (
+      <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M2.5 4.75A2.25 2.25 0 0 1 4.75 2.5h14.5a2.25 2.25 0 0 1 2.25 2.25v14.5a2.25 2.25 0 0 1-2.25 2.25H4.75A2.25 2.25 0 0 1 2.5 19.25V4.75Zm4.25 1.5a.75.75 0 0 0-.75.75v5.5c0 .414.336.75.75.75h3.5a.75.75 0 0 0 .75-.75v-5.5a.75.75 0 0 0-.75-.75h-3.5Zm0 8a.75.75 0 0 0-.75.75v2c0 .414.336.75.75.75h3.5a.75.75 0 0 0 .75-.75v-2a.75.75 0 0 0-.75-.75h-3.5Zm7-8a.75.75 0 0 0-.75.75v10c0 .414.336.75.75.75h3.5a.75.75 0 0 0 .75-.75V7a.75.75 0 0 0-.75-.75h-3.5Z" />
+      </svg>
+    ),
+  },
+]
+
 export default function IntegrationsPage() {
+  const [collections, setCollections] = useState<ApiCollection[]>([])
+  const [selectedCollectionId, setSelectedCollectionId] = useState<string>("")
+  const [integrations, setIntegrations] = useState<ApiIntegration[]>([])
+  const [isLoadingCollections, setIsLoadingCollections] = useState(true)
+  const [isLoadingIntegrations, setIsLoadingIntegrations] = useState(false)
+  const [connectingProvider, setConnectingProvider] = useState<Provider | null>(null)
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+
+  const getAccessToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.access_token) throw new Error("Authentication token not found.")
+    return session.access_token
+  }
+
+  // Load collections on mount
+  useEffect(() => {
+    const loadCollections = async () => {
+      if (!apiBaseUrl) return
+      try {
+        const token = await getAccessToken()
+        const res = await fetch(`${apiBaseUrl}/collections/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (!res.ok) throw new Error()
+        const data = (await res.json()) as ApiCollection[]
+        setCollections(data)
+        if (data.length > 0) setSelectedCollectionId(data[0].id)
+      } catch {
+        // silently fail — no collections to show
+      } finally {
+        setIsLoadingCollections(false)
+      }
+    }
+    loadCollections()
+  }, [])
+
+  // Load integrations when collection changes
+  useEffect(() => {
+    if (!selectedCollectionId || !apiBaseUrl) return
+
+
+    const loadIntegrations = async () => {
+      try {
+        setIsLoadingIntegrations(true)
+        setActionError(null)
+        const token = await getAccessToken()
+        const url = getApiUrl(`/integrations/${selectedCollectionId}`)
+        const res = await fetch(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (!res.ok) throw new Error(`Unable to load integrations (${res.status}).`)
+        const data = (await res.json()) as ApiIntegration[]
+        setIntegrations(data)
+      } catch (err) {
+        setActionError(err instanceof Error ? err.message : "Failed to load integrations.")
+        setIntegrations([])
+      } finally {
+        setIsLoadingIntegrations(false)
+      }
+    }
+
+    loadIntegrations()
+  }, [selectedCollectionId])
+
+  const handleConnect = async (provider: Provider) => {
+    if (!selectedCollectionId || !apiBaseUrl || connectingProvider) return
+    try {
+      setConnectingProvider(provider)
+      setActionError(null)
+      const token = await getAccessToken()
+
+      // Use redirect=false to get the URL, então navega
+      const url = getApiUrl(`/integrations/${selectedCollectionId}/oauth/${provider}/authorize?redirect=false`)
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+
+      if (!res.ok) {
+        throw new Error(`Unable to start ${provider} authorization (${res.status}).`)
+      }
+
+      const { authorization_url } = (await res.json()) as { authorization_url: string }
+      if (!authorization_url) throw new Error("No authorization URL returned.")
+
+      window.location.href = authorization_url
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : `Failed to connect ${provider}.`)
+      setConnectingProvider(null)
+    }
+  }
+
+  const handleDisconnect = async (integrationId: string) => {
+    if (!selectedCollectionId || !apiBaseUrl || disconnectingId) return
+    try {
+      setDisconnectingId(integrationId)
+      setActionError(null)
+      const token = await getAccessToken()
+      const res = await fetch(
+        `${apiBaseUrl}/integrations/${selectedCollectionId}/${integrationId}`,
+        { method: "DELETE", headers: { Authorization: `Bearer ${token}` } },
+      )
+      if (!res.ok && res.status !== 204) {
+        throw new Error(`Unable to remove integration (${res.status}).`)
+      }
+      setIntegrations((current) => current.filter((i) => i.id !== integrationId))
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Failed to disconnect integration.")
+    } finally {
+      setDisconnectingId(null)
+    }
+  }
+
+  const getConnectedIntegration = (provider: Provider) =>
+    integrations.find((i) => i.service.toLowerCase() === provider)
+
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-foreground">Integrations</h1>
-        <p className="text-muted-foreground mt-2">
-          Connect FeedFlow with your favorite tools
-        </p>
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="mb-8 flex max-w-5xl flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground sm:text-4xl">Integrations</h1>
+          <p className="text-muted-foreground mt-2">
+            Connect FeedFlow with your favorite tools.
+          </p>
+        </div>
+
+        <div className="w-full md:w-64">
+          <label className="mb-1.5 block text-sm font-medium text-foreground">Collection</label>
+          {isLoadingCollections ? (
+            <div className="h-9 w-full animate-pulse rounded-md bg-muted" />
+          ) : collections.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No collections found.</p>
+          ) : (
+            <Select value={selectedCollectionId} onValueChange={setSelectedCollectionId}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a collection" />
+              </SelectTrigger>
+              <SelectContent>
+                {collections.map((col) => (
+                  <SelectItem key={col.id} value={col.id}>
+                    {col.name ?? "Untitled collection"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Slack Integration */}
-        <div className="bg-white rounded-xl border border-border p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h3 className="text-lg font-semibold text-foreground">Slack</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Get instant notifications when users report bugs
-              </p>
-            </div>
-            <div className="w-10 h-10 rounded-lg bg-[#E01E5A] flex items-center justify-center">
-              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M19.29 8.41a2.4 2.4 0 00-2.4-2.4 2.4 2.4 0 00-2.4 2.4v2.4h2.4a2.4 2.4 0 012.4 2.4 2.4 2.4 0 01-2.4 2.4H9.64a2.4 2.4 0 01-2.4-2.4 2.4 2.4 0 012.4-2.4h2.4V8.41a2.4 2.4 0 00-2.4-2.4 2.4 2.4 0 00-2.4 2.4v6.35a2.4 2.4 0 002.4 2.4 2.4 2.4 0 002.4-2.4v-2.4H9.64a2.4 2.4 0 00-2.4 2.4 2.4 2.4 0 002.4 2.4h9.65a2.4 2.4 0 002.4-2.4V8.41z" />
-              </svg>
-            </div>
-          </div>
-          <p className="text-sm text-muted-foreground mb-4">
-            Status: <span className="text-yellow-600 font-medium">Not Connected</span>
-          </p>
-          <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
-            Connect Slack
-          </button>
-        </div>
+      {actionError && (
+        <p className="mb-6 max-w-5xl text-sm text-destructive">{actionError}</p>
+      )}
 
-        {/* GitHub Integration */}
-        <div className="bg-white rounded-xl border border-border p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h3 className="text-lg font-semibold text-foreground">GitHub</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Automatically create GitHub issues from bug reports
-              </p>
-            </div>
-            <div className="w-10 h-10 rounded-lg bg-black flex items-center justify-center">
-              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v 3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-              </svg>
-            </div>
-          </div>
-          <p className="text-sm text-muted-foreground mb-4">
-            Status: <span className="text-yellow-600 font-medium">Not Connected</span>
-          </p>
-          <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
-            Connect GitHub
-          </button>
-        </div>
+      <div className="grid max-w-5xl gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {INTEGRATIONS.map((def) => {
+          const connected = getConnectedIntegration(def.provider)
+          const isConnecting = connectingProvider === def.provider
+          const isDisconnecting = disconnectingId === connected?.id
 
-        {/* Jira Integration */}
-        <div className="bg-white rounded-xl border border-border p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h3 className="text-lg font-semibold text-foreground">Jira</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Turn incoming feedback into Jira issues automatically
-              </p>
-            </div>
-            <div className="w-10 h-10 rounded-lg bg-secondary text-secondary-foreground flex items-center justify-center">
-              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M11.537 11.176h-.006c-1.196 0-2.168.972-2.168 2.168v7.292a1.902 1.902 0 0 0 3.249 1.345 1.889 1.889 0 0 0 .55-1.345v-7.292c0-1.196-.972-2.168-2.168-2.168Zm0-9.812c-1.196 0-2.168.972-2.168 2.168v7.292c0 1.196.972 2.168 2.168 2.168h.006a2.168 2.168 0 0 0 2.168-2.168V3.532c0-1.196-.972-2.168-2.168-2.168h-.006Zm7.29 7.999h-7.293c-1.196 0-2.168.972-2.168 2.168v.006c0 1.196.972 2.168 2.168 2.168h7.293a1.902 1.902 0 0 0 1.345-3.249 1.889 1.889 0 0 0-1.345-.55Zm-9.818 0H1.716a1.902 1.902 0 1 0 0 3.804h7.293a2.168 2.168 0 0 0 2.168-2.168v-.006a2.168 2.168 0 0 0-2.168-2.168Z" />
-              </svg>
-            </div>
-          </div>
-          <p className="text-sm text-muted-foreground mb-4">
-            Status: <span className="text-yellow-600 font-medium">Not Connected</span>
-          </p>
-          <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
-            Connect Jira
-          </button>
-        </div>
+          return (
+            <Card key={def.provider} className="py-0">
+              <CardContent className="p-5">
+                <div className="mb-4 flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="text-base font-semibold text-foreground">{def.label}</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">{def.description}</p>
+                  </div>
+                  <div
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${def.iconBg}`}
+                  >
+                    {def.icon}
+                  </div>
+                </div>
 
-        {/* Trello Integration */}
-        <div className="bg-white rounded-xl border border-border p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h3 className="text-lg font-semibold text-foreground">Trello</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Send user reports to Trello boards and lists
-              </p>
-            </div>
-            <div className="w-10 h-10 rounded-lg bg-secondary text-secondary-foreground flex items-center justify-center">
-              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M2.5 4.75A2.25 2.25 0 0 1 4.75 2.5h14.5a2.25 2.25 0 0 1 2.25 2.25v14.5a2.25 2.25 0 0 1-2.25 2.25H4.75A2.25 2.25 0 0 1 2.5 19.25V4.75Zm4.25 1.5a.75.75 0 0 0-.75.75v5.5c0 .414.336.75.75.75h3.5a.75.75 0 0 0 .75-.75v-5.5a.75.75 0 0 0-.75-.75h-3.5Zm0 8a.75.75 0 0 0-.75.75v2c0 .414.336.75.75.75h3.5a.75.75 0 0 0 .75-.75v-2a.75.75 0 0 0-.75-.75h-3.5Zm7-8a.75.75 0 0 0-.75.75v10c0 .414.336.75.75.75h3.5a.75.75 0 0 0 .75-.75V7a.75.75 0 0 0-.75-.75h-3.5Z" />
-              </svg>
-            </div>
-          </div>
-          <p className="text-sm text-muted-foreground mb-4">
-            Status: <span className="text-yellow-600 font-medium">Not Connected</span>
-          </p>
-          <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
-            Connect Trello
-          </button>
-        </div>
+                <div className="mb-4 flex items-center gap-2">
+                  <span
+                    className={`h-2 w-2 rounded-full ${connected ? "bg-emerald-500" : "bg-muted-foreground/40"}`}
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    {isLoadingIntegrations
+                      ? "Loading..."
+                      : connected
+                        ? "Connected"
+                        : "Not connected"}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {connected ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={isDisconnecting || !selectedCollectionId}
+                      onClick={() => handleDisconnect(connected.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      {isDisconnecting ? "Removing..." : "Disconnect"}
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      disabled={isConnecting || !selectedCollectionId || isLoadingCollections}
+                      onClick={() => handleConnect(def.provider)}
+                    >
+                      {isConnecting ? "Redirecting..." : `Connect ${def.label}`}
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })}
       </div>
     </div>
   )

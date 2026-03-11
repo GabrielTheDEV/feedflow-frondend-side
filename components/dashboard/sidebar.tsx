@@ -6,6 +6,7 @@ import { LogOut, BarChart3, Zap, Settings, FileText, Menu, X, Folders, BookOpenT
 import { useEffect, useState } from "react"
 import { Logo } from "@/components/brand/logo"
 import { Button } from "@/components/ui/button"
+import { AvatarInitial } from '@/components/ui/avatar-initial'
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Dialog, DialogTrigger, DialogContent, DialogClose } from "@/components/ui/dialog"
 import { supabase } from "@/lib/supabase/client"
@@ -24,16 +25,6 @@ const navItems = [
     label: "Collections",
     href: "/dashboard/collections",
     icon: Folders,
-  },
-  {
-    label: "Feedbacks",
-    href: "/dashboard",
-    icon: BarChart3,
-  },
-  {
-    label: "Custom Widget",
-    href: "/dashboard/widget",
-    icon: Zap,
   },
   {
     label: "Integrations",
@@ -163,13 +154,7 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
           <Popover>
             <PopoverTrigger asChild>
               <button className="flex items-center gap-3 w-full focus:outline-none">
-                {user.image && (
-                  <img
-                    src={user.image}
-                    alt={user.name || "User"}
-                    className="h-10 w-10 rounded-full"
-                  />
-                )}
+                <AvatarInitial name={user.name} size={40} />
                 <div className="flex-1 min-w-0 text-left">
                   <p className="text-sm font-medium text-foreground truncate">
                     {user.name || "User"}
@@ -183,13 +168,7 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
             <PopoverContent className="space-y-4">
               {/* Perfil */}
               <div className="flex items-center gap-3">
-                {user.image && (
-                  <img
-                    src={user.image}
-                    alt={user.name || "User"}
-                    className="h-10 w-10 rounded-full"
-                  />
-                )}
+                <AvatarInitial name={user.name} size={40} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">
                     {user.name || "User"}
@@ -205,13 +184,7 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
                 </DialogTrigger>
                 <DialogContent className="max-w-lg mx-auto">
                   <div className="flex items-center gap-4 mb-6">
-                    {user.image ? (
-                      <img src={user.image} alt={user.name || "User"} className="h-16 w-16 rounded-full" />
-                    ) : (
-                      <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center text-2xl font-bold">
-                        {user.name?.[0] || "U"}
-                      </div>
-                    )}
+                    <AvatarInitial name={user.name} size={64} />
                     <div>
                       <div className="text-lg font-semibold">Profile</div>
                       <div className="text-sm text-muted-foreground">Edit your information</div>

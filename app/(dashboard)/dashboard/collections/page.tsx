@@ -1,6 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { Skeleton } from '@/components/ui/skeleton'
 import { ArrowRight, Copy, Folders, Github, Plus, Power, RotateCw, Slack, Trash2, Trello, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -161,6 +163,8 @@ function mapApiCollectionToView(collection: ApiCollection, fallbackOrder = 0): C
 }
 
 export default function CollectionsPage() {
+    const router = useRouter();
+    const [loading, setLoading] = useState(true);
   const [collectionList, setCollectionList] = useState<CollectionItem[]>([])
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -206,6 +210,7 @@ export default function CollectionsPage() {
 
       try {
         setIsLoadingCollections(true)
+        setLoading(true)
         setCollectionsError(null)
 
         const {
@@ -234,6 +239,7 @@ export default function CollectionsPage() {
 
         if (isMounted) {
           setCollectionList(mappedCollections)
+          setLoading(false)
         }
       } catch (error) {
         if (isMounted) {
@@ -243,6 +249,7 @@ export default function CollectionsPage() {
               ? error.message
               : "An unexpected error happened while loading collections.",
           )
+          setLoading(false)
         }
       } finally {
         if (isMounted) {
@@ -257,6 +264,29 @@ export default function CollectionsPage() {
       isMounted = false
     }
   }, [])
+
+  if (loading) {
+    return (
+      <div className="p-8">
+        <div className="mb-8">
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="mt-3 h-4 w-96 max-w-full" />
+        </div>
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div key={index} className="bg-white rounded-xl border border-border p-8">
+              <Skeleton className="h-6 w-52 mb-2" />
+              <Skeleton className="h-4 w-80 max-w-full mb-4" />
+              <div className="flex gap-4">
+                <Skeleton className="h-8 w-32" />
+                <Skeleton className="h-8 w-32" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   const handleCopy = async (collectionId: string, value: string) => {
     await navigator.clipboard.writeText(value)
@@ -811,8 +841,8 @@ export default function CollectionsPage() {
           {sortedCollections.map((collection) => (
             <Card
               key={collection.id}
-              className="cursor-pointer py-0 transition-colors hover:bg-accent/20"
-              onClick={() => handleOpenCollection(collection)}
+              className="cursor-pointer py-0 transition-colors hover:bg-muted"
+              onClick={() => router.push(`/dashboard/collections/${collection.id}`)}
             >
               <CardContent className="px-4 py-4 sm:px-6 sm:py-5">
                 <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">

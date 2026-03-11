@@ -65,23 +65,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Workspace Settings */}
-        <div className="bg-white rounded-xl border border-border p-6">
-          <h2 className="text-xl font-semibold text-foreground mb-4">Workspace</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-foreground">Workspace Name</label>
-              <input
-                type="text"
-                value="FeedFlow Workspace"
-                className="w-full mt-2 px-3 py-2 rounded-lg border border-border bg-background text-sm"
-              />
-            </div>
-            <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
-              Save Changes
-            </button>
-          </div>
-        </div>
+
       </div>
     </div>
   )
